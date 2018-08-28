@@ -23,6 +23,8 @@ module.exports = {
 // To be sure that start is called only once
 let started = false;
 
+let listener = false;
+
 // To be call from the main process
 function setup(webContents) {
   // Will be called by the renderer process
@@ -50,7 +52,7 @@ function setup(webContents) {
         webContents.send(TOKEN_UPDATED, credentials.fcm.token);
       }
       // Listen for GCM/FCM notifications
-      await listen(Object.assign({}, credentials, { persistentIds }), onNotification(webContents));
+      listener = await listen(Object.assign({}, credentials, { persistentIds }), onNotification(webContents));
       // Notify the renderer process that we are listening for notifications
       webContents.send(NOTIFICATION_SERVICE_STARTED, credentials.fcm.token);
     } catch (e) {
@@ -59,6 +61,15 @@ function setup(webContents) {
       webContents.send(NOTIFICATION_SERVICE_ERROR, e.message);
     }
   });
+}
+
+function destroy() {
+  if (started && listener) {
+    started = false;
+    listener.destroy();
+  }
+  
+  return;
 }
 
 // Will be called on new notification
