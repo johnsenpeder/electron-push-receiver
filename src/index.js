@@ -33,8 +33,8 @@ function setup(webContents) {
     let credentials = config.get('credentials');
     // Retrieve saved senderId
     const savedSenderId = config.get('senderId');
-    if (started) {
-      webContents.send(NOTIFICATION_SERVICE_STARTED, (credentials.fcm || {}).token);
+    if (started && listener) {
+      webContents.send(NOTIFICATION_SERVICE_STARTED, (credentials.fcm || {}).token, listener);
       return;
     }
     started = true;
@@ -54,22 +54,13 @@ function setup(webContents) {
       // Listen for GCM/FCM notifications
       listener = await listen(Object.assign({}, credentials, { persistentIds }), onNotification(webContents));
       // Notify the renderer process that we are listening for notifications
-      webContents.send(NOTIFICATION_SERVICE_STARTED, credentials.fcm.token);
+      webContents.send(NOTIFICATION_SERVICE_STARTED, credentials.fcm.token, listener);
     } catch (e) {
       console.error('PUSH_RECEIVER:::Error while starting the service', e);
       // Forward error to the renderer process
       webContents.send(NOTIFICATION_SERVICE_ERROR, e.message);
     }
   });
-}
-
-function destroy() {
-  if (started && listener) {
-    started = false;
-    listener.destroy();
-  }
-  
-  return;
 }
 
 // Will be called on new notification
